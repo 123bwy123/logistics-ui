@@ -1,0 +1,181 @@
+/* 整个屏幕背景：商务蓝科技风 */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+}
+
+/* 中间的白色玻璃卡片 */
+.login-box {
+  display: flex;
+  width: 850px;
+  height: 480px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+/* 左侧品牌区 */
+.login-left {
+  flex: 1;
+  background: #f4f7fb;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  text-align: center;
+  border-right: 1px solid #ebeef5;
+}
+
+.login-left .logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.login-left h2 {
+  color: #303133;
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+.login-left p {
+  color: #909399;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+/* 右侧表单区 */
+.login-right {
+  flex: 1;
+  padding: 50px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-header {
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.login-header h3 {
+  color: #303133;
+  font-size: 22px;
+  margin: 0;
+}
+
+.login-btn {
+  width: 100%;
+  border-radius: 6px;
+  font-size: 16px;
+  letter-spacing: 4px;
+}
+
+/* 验证码样式布局 */
+.captcha-container {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.captcha-img {
+  width: 110px;
+  height: 40px;
+  background: #f0f2f5;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: 1px solid #dcdfe6;
+}
+
+.mock-captcha {
+  font-size: 20px;
+  font-weight: bold;
+  color: #409EFF;
+  letter-spacing: 3px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* 只展示增量或修改的 CSS，原有的 .login-container 等保留 */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
+/* 高度从 480px 调整为 580px 以容纳更多元素 */
+.login-box {
+  display: flex;
+  width: 850px;
+  height: 580px; 
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+/* 其余左侧品牌区、右侧表单区原有样式保持不变... */
+.login-left { flex: 1; background: #f4f7fb; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; border-right: 1px solid #ebeef5; }
+.login-left .logo { width: 120px; height: 120px; border-radius: 50%; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.login-left h2 { color: #303133; margin-bottom: 10px; font-size: 24px; }
+.login-left p { color: #909399; font-size: 14px; letter-spacing: 1px; }
+.login-right { flex: 1; padding: 40px 40px; display: flex; flex-direction: column; justify-content: center; }
+.login-header { margin-bottom: 25px; text-align: left; }
+.login-header h3 { color: #303133; font-size: 22px; margin: 0; }
+.login-btn { width: 100%; border-radius: 6px; font-size: 16px; letter-spacing: 4px; margin-top: 10px; }
+.captcha-container { display: flex; width: 100%; align-items: center; }
+.captcha-img { width: 110px; height: 40px; background: #f0f2f5; border-radius: 4px; display: flex; justify-content: center; align-items: center; cursor: pointer; border: 1px solid #dcdfe6; transition: all 0.3s;}
+.captcha-img:hover { border-color: #409EFF; }
+.mock-captcha { font-size: 20px; font-weight: bold; color: #409EFF; letter-spacing: 3px; font-family: 'Courier New', Courier, monospace; }
+
+/* === 新增样式 === */
+.login-options {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  margin-top: -10px;
+}
+.login-options .el-checkbox {
+  margin-right: 0;
+  height: 25px;
+}
+.link-text {
+  color: #409EFF;
+  text-decoration: none;
+}
+.link-text:hover {
+  text-decoration: underline;
+}
+
+.login-footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  font-size: 14px;
+}
+.register-link, .forgot-link {
+  color: #606266;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.register-link:hover, .forgot-link:hover {
+  color: #409EFF;
+}
+.divider {
+  margin: 0 15px;
+  color: #DCDFE6;
+}

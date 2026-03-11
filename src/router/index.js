@@ -1,0 +1,53 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import Login from '../views/login/Login.vue'
+import Layout from '../layout/index.vue' // 引入后台骨架
+
+const routes = [
+  {
+    path: '/',
+    redirect: '/login'
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../views/login/Register.vue')
+  },
+  // ===== 后台管理路由模块 (内部员工统一走这里) =====
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: Layout, // 父组件是骨架
+    redirect: '/admin/system-user', 
+    children: [
+      {
+        path: 'system-user', 
+        name: 'SystemUser',
+        component: () => import('../views/admin/SystemUser.vue') 
+      },
+      // 客服专属工作台 (真实嵌套在后台里)
+      { 
+        path: 'service-workspace', 
+        name: 'ServiceWorkspace', 
+        component: () => import('../views/service/ServiceWorkspace.vue') 
+      }
+    ]
+  },
+  // ===== 客户专属下单大厅 (外部客户走这里) =====
+  {
+    path: '/customer',
+    name: 'CustomerDashboard',
+    component: () => import('../views/customer/NewOrder.vue') 
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+export default router
