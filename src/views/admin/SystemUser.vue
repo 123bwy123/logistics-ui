@@ -32,11 +32,15 @@
 		    <el-input v-model="form.realName" placeholder="请输入员工真实姓名" />
 		</el-form-item>
         <el-form-item label="分配角色" prop="role">
-                  <el-select v-model="form.role" placeholder="请选择角色" style="width: 100%;">
-                    <el-option label="客服人员" :value="1" />
-                    <el-option label="调度管理员" :value="2" />
-                    <el-option label="库房管理员" :value="3" />
-                    <el-option label="配送员" :value="4" />
+                  <el-select v-model="form.role" placeholder="请选择系统角色" style="width: 100%;">
+                    <el-option label="客服人员 (Service)" :value="1" />
+                    <el-option label="调度中心管理员 (Dispatcher)" :value="2" />
+                    <el-option label="中心库房管理员 (Center Warehouse)" :value="3" />
+                    <el-option label="分站库房管理员 (Station Warehouse)" :value="8" />
+                    <el-option label="配送员/快递小哥 (Courier)" :value="4" />
+                    <el-option label="分站管理员 (Station Admin)" :value="5" />
+                    <el-option label="配送中心管理员 (Center Admin)" :value="6" />
+                    <el-option label="财务中心管理员 (Finance Admin)" :value="7" />
                   </el-select>
         </el-form-item>
         <el-alert v-if="!form.id" title="初始密码默认为 123456" type="info" show-icon style="margin-bottom: 15px;"/>
@@ -96,13 +100,33 @@ const fetchList = async () => {
 }
 
 // 2. 格式化角色显示 (字典转换)
-// 2. 格式化角色显示 (字典转换)
 const formatRole = (role) => {
-  const map = { 1: '客服人员', 2: '调度管理员', 3: '库房管理员', 4: '配送员' }
+  const map = { 
+    1: '客服人员', 
+    2: '调度管理员', 
+    3: '中心库房管理员', // <--- 修改这行
+    4: '配送员',
+    5: '分站管理员',
+    6: '配送中心管理员',
+    7: '财务管理员',
+    8: '分站库房管理员', // <--- 新增这行
+    0: '系统管理员'
+  }
   return map[role] || '未知角色'
 }
+
 const getRoleTagType = (role) => {
-  const map = { 1: 'success', 2: 'warning', 3: 'info', 4: '' }
+  const map = { 
+    1: 'success', 
+    2: 'warning', 
+    3: 'info', 
+    4: '', // 默认蓝色
+    5: 'danger',
+    6: 'warning',
+    7: 'success',
+	8: 'info',
+    0: 'danger'
+  }
   return map[role] || 'primary'
 }
 

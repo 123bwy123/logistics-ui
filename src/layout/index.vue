@@ -24,8 +24,23 @@
                     <el-icon><PhoneFilled /></el-icon>
                     <span>客服工作台</span>
                   </el-menu-item>
-                
-          
+                  <el-menu-item index="/admin/dispatch-workspace">
+					  <el-icon><Guide /></el-icon>
+					  <span>调度中心工作台</span>
+                 </el-menu-item>
+				 <el-menu-item index="/admin/warehouse-workspace">
+					 <el-icon><Box /></el-icon>
+					 <span>库房出库管理</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/station-workspace">
+					<el-icon><Bicycle /></el-icon>
+					<span>分站派件管理</span>
+			   </el-menu-item>
+				<el-menu-item index="/admin/station-warehouse-workspace">
+					<el-icon><House /></el-icon>
+					<span>分站库房工作台</span>
+				  </el-menu-item>
+				  
           <el-menu-item index="/admin/customer">
             <el-icon><Postcard /></el-icon>
             <span>客户信息查询</span>
@@ -63,7 +78,7 @@
 </template>
 
 <script setup>
-import { User, Expand, ArrowDown, PhoneFilled, Postcard } from '@element-plus/icons-vue'
+import { User, Expand, ArrowDown, PhoneFilled, Postcard,Guide,Box,Bicycle,House } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 

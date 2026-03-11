@@ -34,7 +34,32 @@ const routes = [
         path: 'service-workspace', 
         name: 'ServiceWorkspace', 
         component: () => import('../views/service/ServiceWorkspace.vue') 
-      }
+      },
+	  // 调度中心工作台
+		{ 
+	  path: 'dispatch-workspace', 
+	  name: 'DispatchWorkspace', 
+	  component: () => import('../views/dispatch/DispatchWorkspace.vue') 
+		},
+		// 中心库房工作台
+	  { 
+		path: 'warehouse-workspace', 
+		name: 'WarehouseWorkspace', 
+		component: () => import('../views/warehouse/WarehouseWorkspace.vue') 
+	  },
+	  // 分站工作台
+		{ 
+		  path: 'station-workspace', 
+		  name: 'StationWorkspace', 
+		  component: () => import('../views/station/StationWorkspace.vue') 
+		},
+		// 分站库房工作台
+		  { 
+			path: 'station-warehouse-workspace', 
+			name: 'StationWarehouseWorkspace', 
+			component: () => import('../views/station-warehouse/StationWarehouseWorkspace.vue') 
+		  }
+		
     ]
   },
   // ===== 客户专属下单大厅 (外部客户走这里) =====
