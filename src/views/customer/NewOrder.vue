@@ -50,10 +50,12 @@
           <div v-for="(item, index) in orderForm.itemList" :key="index" class="item-row">
             <el-form-item :label="'商品 ' + (index + 1)" :prop="'itemList.' + index + '.productId'" :rules="{ required: true, message: '请选择商品', trigger: 'change' }">
               <el-select v-model="item.productId" placeholder="请选择要寄送的商品" style="width: 200px;">
-                <el-option label="联想 ThinkPad 笔记本" :value="1" />
-                <el-option label="农夫山泉矿泉水 (箱)" :value="2" />
-                <el-option label="A4 打印纸 (箱)" :value="3" />
-                <el-option label="人体工学办公椅" :value="4" />
+                <el-option
+                  v-for="product in productList"
+                  :key="product.id"
+                  :label="product.productName || product.product_name"
+                  :value="product.id"
+                />
               </el-select>
             </el-form-item>
             
@@ -83,7 +85,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Van, Delete, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -102,6 +104,28 @@ const orderForm = reactive({
     itemList: [
       { productId: null, quantity: 1 }
     ]
+})
+
+const productList = ref([])
+
+onMounted(async () => {
+  const storedId = localStorage.getItem('currentUserId')
+  if (storedId) {
+    orderForm.customerId = parseInt(storedId)
+  } else {
+    ElMessage.error('请先登录！')
+    router.push('/login')
+  }
+
+  // 动态获取可售商品
+  try {
+    const res = await axios.get('http://localhost:8080/customer/order/products')
+    if (res.data.code === 200) {
+      productList.value = res.data.data
+    }
+  } catch (error) {
+    console.error('加载商品失败', error)
+  }
 })
 
 // 校验规则

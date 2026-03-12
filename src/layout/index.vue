@@ -24,6 +24,16 @@
 				  <el-icon><PhoneFilled /></el-icon>
 				  <span>客服工作台</span>
 				</el-menu-item>
+
+				<el-menu-item index="/admin/new-order" v-if="currentRole === 'service' || currentRole === 'admin'">
+				  <el-icon><ShoppingCart /></el-icon>
+				  <span>新订订单</span>
+				</el-menu-item>
+
+			<el-menu-item index="/admin/customer-order-workspace" v-if="currentRole === 'service' || currentRole === 'admin'">
+			  <el-icon><List /></el-icon>
+			  <span>订单管理</span>
+			</el-menu-item>
 	  
 				<el-menu-item index="/admin/dispatch-workspace" v-if="currentRole === 'dispatcher' || currentRole === 'admin'">
 				  <el-icon><Guide /></el-icon>
@@ -52,6 +62,45 @@
 				  <el-icon><DataLine /></el-icon>
 				  <span>库存监控与采购大屏</span>
 				</el-menu-item>
+				<el-menu-item index="/admin/supplier-management" v-if="currentRole === 'center_admin' || currentRole === 'admin'">
+					<el-icon><Shop /></el-icon>
+					<span>供应商管理</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/category-management" v-if="currentRole === 'center_admin' || currentRole === 'admin'">
+					<el-icon><Fold /></el-icon>
+					<span>商品分类管理</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/product-management" v-if="currentRole === 'center_admin' || currentRole === 'admin'">
+					<el-icon><Box /></el-icon>
+					<span>商品信息管理</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/warehouse-management" v-if="currentRole === 'center_admin' || currentRole === 'admin'">
+					<el-icon><House /></el-icon>
+					<span>库房设置</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/warehouse-reserve" v-if="currentRole === 'center_admin' || currentRole === 'admin'">
+					<el-icon><Timer /></el-icon>
+					<span>库房储备设置</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/inventory-report" v-if="currentRole === 'center_admin' || currentRole === 'admin'">
+					<el-icon><DataLine /></el-icon>
+					<span>全网库存查询</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/stock-flow" v-if="currentRole === 'center_admin' || currentRole === 'admin'">
+					<el-icon><List /></el-icon>
+					<span>出入库流水账</span>
+				</el-menu-item>
+
+				<!-- 系统管理 (RBAC) -->
+				<el-sub-menu index="system" v-if="currentRole === 'admin'">
+					<template #title>
+						<el-icon><Setting /></el-icon>
+						<span>系统权限控制</span>
+					</template>
+					<el-menu-item index="/admin/system-user">员工账号管理</el-menu-item>
+					<el-menu-item index="/admin/role-management">角色权限分配</el-menu-item>
+				</el-sub-menu>
+
 				<el-menu-item index="/admin/supplier-workspace" v-if="currentRole === 'supplier' || currentRole === 'admin'">
 					<el-icon><Van /></el-icon>
 					<span>厂家发货大厅</span>
@@ -61,7 +110,7 @@
 					  <span>财务结算与发票中心</span>
 					</el-menu-item>
 			  
-          <el-menu-item index="/admin/customer">
+          <el-menu-item index="/admin/customer-management" v-if="currentRole === 'service' || currentRole === 'admin'">
             <el-icon><Postcard /></el-icon>
             <span>客户信息查询</span>
           </el-menu-item>
@@ -100,7 +149,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { User, Expand, ArrowDown, PhoneFilled, Postcard,Guide,Box,Bicycle,House } from '@element-plus/icons-vue'
+import { User, Expand, ArrowDown, PhoneFilled, Postcard,Guide,Box,Bicycle,House,DataLine,Shop,Fold,Van,List,ShoppingCart,Money,Timer } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 

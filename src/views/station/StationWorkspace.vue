@@ -1,199 +1,494 @@
 <template>
-  <div class="app-container">
-    <el-card shadow="hover">
-      <el-tabs v-model="activeTab" @tab-click="handleTabClick">
-        
-        <el-tab-pane label="派件调度 (发任务)" name="dispatch">
-          <el-table :data="tableData" border stripe v-loading="loading">
-            <el-table-column prop="taskNo" label="内部任务单号" />
-            <el-table-column prop="customerOrderNo" label="关联运单号" />
-            <el-table-column prop="receiveAddress" label="客户收件地址" show-overflow-tooltip />
-            <el-table-column label="操作" width="120" align="center">
-              <template #default="scope">
-                <el-button type="primary" size="small" @click="openAssignDialog(scope.row)">派单</el-button>
+  <div class="station-workspace">
+    <el-tabs v-model="activeTab" type="border-card" class="main-tabs">
+
+      <!-- ===================== TAB 1：任务分配 ===================== -->
+      <el-tab-pane label="📋 任务分配" name="assign">
+        <el-card shadow="never">
+          <template #header>
+            <span class="panel-title">待分配任务单（分站ID：{{ stationId }}）</span>
+            <el-form :inline="true" size="small" style="margin-left:auto">
+              <el-form-item label="任务类型">
+                <el-select v-model="filter.taskType" clearable placeholder="全部" style="width:110px">
+                  <el-option label="送货收款" :value="1" />
+                  <el-option label="送货" :value="2" />
+                  <el-option label="退货" :value="3" />
+                  <el-option label="换货" :value="4" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="日期">
+                <el-date-picker v-model="filter.dateRange" type="daterange"
+                  start-placeholder="开始" end-placeholder="结束"
+                  value-format="YYYY-MM-DD" style="width:220px" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" size="small" @click="loadPending" :loading="pending.loading">查询</el-button>
+                <el-button size="small" @click="clearFilter">重置</el-button>
+              </el-form-item>
+            </el-form>
+          </template>
+          <el-table :data="pending.list" border stripe size="small" max-height="380"
+            v-loading="pending.loading">
+            <el-table-column prop="task_no" label="任务单号" min-width="180" />
+            <el-table-column label="类型" width="80" align="center">
+              <template #default="s">
+                <el-tag size="small" :type="taskTypeColor(s.row.task_type)">{{ taskTypeLabel(s.row.task_type) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="customer_name" label="客户" width="80" />
+            <el-table-column prop="mobile" label="手机" width="120" />
+            <el-table-column prop="receive_address" label="收货地址" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="total_amount" label="货款" width="90" align="right">
+              <template #default="s">¥{{ fmt(s.row.total_amount) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="80" align="center">
+              <template #default="s">
+                <el-button size="small" type="primary" @click="openAssignDialog(s.row)">分配</el-button>
               </template>
             </el-table-column>
           </el-table>
-        </el-tab-pane>
+        </el-card>
 
-        <el-tab-pane label="回执录入与结单 (收钱)" name="close">
-          <el-alert title="小哥送完货回网点后，请仔细核对签收单及货款，确认无误后点击【确认收款并结单】。" type="success" show-icon style="margin-bottom: 20px;" />
-          <el-table :data="closeTableData" border stripe v-loading="closeLoading">
-            <el-table-column prop="customerOrderNo" label="客户订单号" align="center" />
-            <el-table-column prop="courierName" label="派送骑士" align="center">
-              <template #default="scope"><el-tag type="warning">{{ scope.row.courierName }}</el-tag></template>
+        <!-- 分配弹窗 -->
+        <el-dialog v-model="assignDialog.visible" title="🚗 分配配送员" width="420px">
+          <el-form label-width="80px" size="small">
+            <el-form-item label="任务单">
+              <el-input :model-value="assignDialog.task?.task_no" disabled />
+            </el-form-item>
+            <el-form-item label="客户">
+              <el-input :model-value="(assignDialog.task?.customer_name || '') + ' ' + (assignDialog.task?.mobile || '')" disabled />
+            </el-form-item>
+            <el-form-item label="配送员" required>
+              <el-select v-model="assignDialog.courierId" placeholder="请选择配送员" style="width:100%">
+                <el-option v-for="c in couriers" :key="c.id" :label="c.realName" :value="c.id" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+          <template #footer>
+            <el-button @click="assignDialog.visible = false">取消</el-button>
+            <el-button type="primary" :loading="assignDialog.submitting" @click="submitAssign">确认分配</el-button>
+          </template>
+        </el-dialog>
+      </el-tab-pane>
+
+      <!-- ===================== TAB 2：打印签收单 ===================== -->
+      <el-tab-pane label="🖨 打印签收单" name="print">
+        <el-card shadow="never">
+          <template #header>
+            <span class="panel-title">已分配任务单（已派送，可打印）</span>
+            <el-button size="small" type="primary" plain @click="loadAssigned" :loading="assigned.loading">刷新</el-button>
+          </template>
+          <el-table :data="assigned.list" border stripe size="small" max-height="380"
+            v-loading="assigned.loading">
+            <el-table-column prop="task_no" label="任务单号" min-width="170" />
+            <el-table-column prop="customer_name" label="客户" width="80" />
+            <el-table-column prop="mobile" label="手机" width="120" />
+            <el-table-column prop="courier_name" label="配送员" width="90" />
+            <el-table-column prop="receive_address" label="收货地址" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="total_amount" label="货款" width="90" align="right">
+              <template #default="s">¥{{ fmt(s.row.total_amount) }}</template>
             </el-table-column>
-            <el-table-column prop="totalAmount" label="应上交货款(元)" align="center">
-              <template #default="scope"><span style="color: red; font-weight: bold; font-size: 16px;">¥ {{ scope.row.totalAmount }}</span></template>
-            </el-table-column>
-            <el-table-column label="站长操作" width="200" align="center">
-              <template #default="scope">
-                <el-button type="success" icon="Money" @click="doClose(scope.row)">已收妥·确认结单</el-button>
+            <el-table-column label="操作" width="80" align="center">
+              <template #default="s">
+                <el-button size="small" type="warning" @click="openPrintDialog(s.row)">🖨 打印</el-button>
               </template>
             </el-table-column>
           </el-table>
-        </el-tab-pane>
+        </el-card>
 
-      </el-tabs>
-    </el-card>
-		<el-dialog v-model="dialogVisible" title="🚚 分配配送任务" width="400px">
-			  <el-form ref="formRef" :model="assignForm">
-				<el-form-item label="选择配送员" required prop="courierId">
-				  <el-select v-model="assignForm.courierId" placeholder="请选择本站快递小哥" style="width: 100%">
-					<el-option v-for="c in courierList" :key="c.id" :label="c.realName" :value="c.id" />
-				  </el-select>
-				</el-form-item>
-			  </el-form>
-			  <template #footer>
-				<span class="dialog-footer">
-				  <el-button @click="dialogVisible = false">取消</el-button>
-				  <el-button type="primary" @click="submitAssign" :loading="submitLoading">确认派发</el-button>
-				</span>
-			  </template>
-			</el-dialog>
-    </div>
+        <!-- 打印预览弹窗 -->
+        <el-dialog v-model="printDialog.visible" title="📄 签收单预览" width="600px">
+          <div id="print-area" class="print-area" v-if="printDialog.data">
+            <div class="print-header">
+              <h2>📦 物流配送签收单</h2>
+              <p>打印时间：{{ new Date().toLocaleString('zh-CN') }}</p>
+            </div>
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="任务单号">{{ printDialog.data.task_no }}</el-descriptions-item>
+              <el-descriptions-item label="关联订单">{{ printDialog.data.order_no }}</el-descriptions-item>
+              <el-descriptions-item label="客户姓名">{{ printDialog.data.customer_name }}</el-descriptions-item>
+              <el-descriptions-item label="联系电话">{{ printDialog.data.mobile }}</el-descriptions-item>
+              <el-descriptions-item label="收货地址" :span="2">{{ printDialog.data.receive_address }}</el-descriptions-item>
+              <el-descriptions-item label="配送员">{{ printDialog.data.courier_name }}</el-descriptions-item>
+              <el-descriptions-item label="要求到达日期">{{ printDialog.data.require_date }}</el-descriptions-item>
+            </el-descriptions>
+            <h4 style="margin:12px 0 6px">📋 商品清单：</h4>
+            <el-table :data="printDialog.items" border size="small">
+              <el-table-column prop="product_name" label="商品名称" />
+              <el-table-column prop="quantity" label="数量" width="70" align="center" />
+              <el-table-column label="单价" width="90" align="right">
+                <template #default="s">¥{{ fmt(s.row.unit_price) }}</template>
+              </el-table-column>
+              <el-table-column label="小计" width="90" align="right">
+                <template #default="s">¥{{ fmt(s.row.amount) }}</template>
+              </el-table-column>
+            </el-table>
+            <div class="print-footer">
+              <div>应收货款合计：<strong style="color:#e6a23c;font-size:16px">¥{{ fmt(printDialog.data.total_amount) }}</strong></div>
+              <div class="sign-area">
+                <span>客户签字：________________</span>
+                <span>送达时间：________________</span>
+              </div>
+            </div>
+          </div>
+          <template #footer>
+            <el-button @click="printDialog.visible = false">关闭</el-button>
+            <el-button type="primary" @click="doPrint">🖨 打印</el-button>
+          </template>
+        </el-dialog>
+      </el-tab-pane>
+
+      <!-- ===================== TAB 3：回执录入结单 ===================== -->
+      <el-tab-pane label="✅ 回执录入" name="receipt">
+        <el-card shadow="never">
+          <template #header>
+            <span class="panel-title">待结单任务（已派送，等待回执）</span>
+            <el-button size="small" type="primary" plain @click="loadAssigned2" :loading="receipt.loading">刷新</el-button>
+          </template>
+          <el-table :data="receipt.list" border stripe size="small" max-height="380"
+            v-loading="receipt.loading">
+            <el-table-column prop="task_no" label="任务单号" min-width="170" />
+            <el-table-column prop="customer_name" label="客户" width="80" />
+            <el-table-column prop="mobile" label="手机" width="120" />
+            <el-table-column prop="courier_name" label="配送员" width="90" />
+            <el-table-column prop="receive_address" label="收货地址" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="total_amount" label="应收" width="90" align="right">
+              <template #default="s">¥{{ fmt(s.row.total_amount) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="100" align="center">
+              <template #default="s">
+                <el-button size="small" type="success" @click="openReceiptDialog(s.row)">📝 回执录入</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+
+        <!-- 回执录入弹窗 -->
+        <el-dialog v-model="receiptDialog.visible" title="📝 回执录入 / 结单" width="480px">
+          <el-form ref="receiptFormRef" :model="receiptDialog.form" label-width="90px" size="small">
+            <el-form-item label="任务单">
+              <el-input :model-value="receiptDialog.task?.task_no" disabled />
+            </el-form-item>
+            <el-form-item label="客户"><el-input :model-value="receiptDialog.task?.customer_name" disabled /></el-form-item>
+            <el-form-item label="应收金额"><el-input :model-value="'¥' + fmt(receiptDialog.task?.total_amount)" disabled /></el-form-item>
+            <el-form-item label="完成状态" required>
+              <el-radio-group v-model="receiptDialog.form.completeStatus">
+                <el-radio :value="3" border>✅ 全部完成</el-radio>
+                <el-radio :value="4" border>⚡ 部分完成</el-radio>
+                <el-radio :value="5" border>❌ 失败/拒收</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="实收金额" required>
+              <el-input-number v-model="receiptDialog.form.actualAmount"
+                :min="0" :precision="2" :step="0.01" style="width:200px" />
+            </el-form-item>
+            <el-form-item label="备注">
+              <el-input v-model="receiptDialog.form.remark" type="textarea" :rows="2" placeholder="如：部分商品客户拒收，已带回3件..." />
+            </el-form-item>
+          </el-form>
+          <template #footer>
+            <el-button @click="receiptDialog.visible = false">取消</el-button>
+            <el-button type="primary" :loading="receiptDialog.submitting" @click="submitReceipt">确认结单</el-button>
+          </template>
+        </el-dialog>
+      </el-tab-pane>
+
+      <!-- ===================== TAB 4：缴款统计 ===================== -->
+      <el-tab-pane label="💰 缴款统计" name="payment">
+        <el-card shadow="never">
+          <template #header>
+            <span class="panel-title">缴款对账统计</span>
+            <el-form :inline="true" size="small" style="margin-left:auto">
+              <el-form-item label="日期范围">
+                <el-date-picker v-model="payFilter.dateRange" type="daterange"
+                  start-placeholder="开始" end-placeholder="结束"
+                  value-format="YYYY-MM-DD" style="width:220px" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" size="small" @click="loadPaymentStats" :loading="payment.loading">查询</el-button>
+              </el-form-item>
+            </el-form>
+          </template>
+
+          <!-- 汇总卡片 -->
+          <div class="summary-cards" v-if="payment.summary">
+            <el-card class="summary-card delivered">
+              <div class="card-title">送达总量</div>
+              <div class="card-value">{{ payment.summary.totalDelivered }}</div>
+            </el-card>
+            <el-card class="summary-card amount">
+              <div class="card-title">实收总金额</div>
+              <div class="card-value">¥{{ fmt(payment.summary.totalReceived) }}</div>
+            </el-card>
+            <el-card class="summary-card failed">
+              <div class="card-title">失败/拒收</div>
+              <div class="card-value">{{ payment.summary.totalFailed }}</div>
+            </el-card>
+            <el-card class="summary-card refund">
+              <div class="card-title">退款总金额</div>
+              <div class="card-value">¥{{ fmt(payment.summary.totalRefund) }}</div>
+            </el-card>
+          </div>
+
+          <el-table :data="payment.details" border stripe size="small" max-height="300"
+            v-loading="payment.loading" style="margin-top:12px">
+            <el-table-column prop="settle_date" label="结算日期" width="120" />
+            <el-table-column prop="delivered_count" label="送达数量" width="90" align="center" />
+            <el-table-column label="实收金额" width="110" align="right">
+              <template #default="s">¥{{ fmt(s.row.total_received) }}</template>
+            </el-table-column>
+            <el-table-column prop="failed_count" label="失败数量" width="90" align="center" />
+            <el-table-column label="退款金额" width="110" align="right">
+              <template #default="s">¥{{ fmt(s.row.total_refund) }}</template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+
+    </el-tabs>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { Bicycle, Position, Refresh,Money } from '@element-plus/icons-vue'
-import { ElMessage , ElMessageBox} from 'element-plus'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 
-const activeTab = ref('dispatch') // 默认停在第一个标签
-const closeTableData = ref([])
-const closeLoading = ref(false)
+const BASE = 'http://localhost:8080'
 
-const tableData = ref([])
-const loading = ref(false)
-const submitLoading = ref(false)
+// 当前登录分站ID（从 localStorage 读取，实际登录逻辑存储）
+const stationId = ref(parseInt(localStorage.getItem('currentUserId')) || 1)
+const activeTab = ref('assign')
+const couriers = ref([])
 
-// 【新增】：存放真实小哥的数组
-const courierList = ref([])
+// ============ 工具函数 ============
+const fmt = (v) => Number(v || 0).toFixed(2)
+const taskTypeLabel = (t) => ({ 1:'送货收款', 2:'送货', 3:'退货', 4:'换货' }[t] ?? `类型${t}`)
+const taskTypeColor = (t) => ({ 1:'', 2:'success', 3:'danger', 4:'warning' }[t] ?? 'info')
 
-// 【新增】：去后端拉取真实的快递小哥名单
-const fetchCouriers = async () => {
+// ============ TAB 1：任务分配 ============
+const filter = reactive({ taskType: null, dateRange: null })
+const pending = reactive({ list: [], loading: false })
+
+const clearFilter = () => { filter.taskType = null; filter.dateRange = null; loadPending() }
+const loadPending = async () => {
+  pending.loading = true
   try {
-    const res = await axios.get('http://localhost:8080/admin/station/courierList')
-    if (res.data.code === 200) {
-      courierList.value = res.data.data
-    }
-  } catch (error) {
-    console.error('获取小哥列表失败')
-  }
+    const res = await axios.get(`${BASE}/admin/station/pending-tasks`, {
+      params: {
+        stationId: stationId.value,
+        taskType: filter.taskType || undefined,
+        dateStart: filter.dateRange?.[0] || undefined,
+        dateEnd: filter.dateRange?.[1] || undefined
+      }
+    })
+    if (res.data.code === 200) pending.list = res.data.data || []
+    else ElMessage.error(res.data.msg)
+  } catch { ElMessage.error('加载失败') }
+  finally { pending.loading = false }
 }
-const dialogVisible = ref(false)
-const formRef = ref(null)
-const assignForm = reactive({
-  taskId: null,
-  orderId: null,
-  taskNo: '',
-  receiveAddress: '',
-  courierId: null
+
+const assignDialog = reactive({ visible: false, task: null, courierId: null, submitting: false })
+const openAssignDialog = (row) => {
+  assignDialog.task = row
+  assignDialog.courierId = null
+  assignDialog.visible = true
+}
+const submitAssign = async () => {
+  if (!assignDialog.courierId) return ElMessage.warning('请选择配送员！')
+  assignDialog.submitting = true
+  try {
+    const res = await axios.post(`${BASE}/admin/station/assign`, {
+      taskId: assignDialog.task.id,
+      orderId: assignDialog.task.order_id,
+      courierId: assignDialog.courierId,
+      adminId: stationId.value
+    })
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.data || '分配成功！')
+      assignDialog.visible = false
+      loadPending()
+      loadAssigned()
+      loadAssigned2()
+    } else { ElMessage.error(res.data.msg) }
+  } catch { ElMessage.error('网络错误') }
+  finally { assignDialog.submitting = false }
+}
+
+// ============ TAB 2：打印签收单 ============
+const assigned = reactive({ list: [], loading: false })
+const printDialog = reactive({ visible: false, data: null, items: [] })
+
+const loadAssigned = async () => {
+  assigned.loading = true
+  try {
+    const res = await axios.get(`${BASE}/admin/station/assigned-tasks`, {
+      params: { stationId: stationId.value }
+    })
+    if (res.data.code === 200) assigned.list = res.data.data || []
+  } catch {}
+  finally { assigned.loading = false }
+}
+
+const openPrintDialog = async (row) => {
+  try {
+    const res = await axios.get(`${BASE}/admin/station/print-data`, { params: { taskId: row.id } })
+    if (res.data.code === 200) {
+      printDialog.data = res.data.data
+      printDialog.items = res.data.data.items || []
+      printDialog.visible = true
+    } else { ElMessage.error(res.data.msg) }
+  } catch { ElMessage.error('获取打印数据失败') }
+}
+
+const doPrint = () => {
+  // 提取打印区域内容并打印
+  const content = document.getElementById('print-area').innerHTML
+  const w = window.open('', '', 'width=800,height=800')
+  w.document.write(`
+    <html><head><title>物流签收单</title>
+    <style>
+      body{font-family:SimSun,serif;padding:20px;color:#000}
+      h2{text-align:center;margin-bottom:4px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      th,td{border:1px solid #999;padding:6px 10px;font-size:13px}
+      th{background:#f0f0f0;text-align:center}
+      .sign-area{display:flex;justify-content:space-between;margin-top:20px;padding-top:10px;border-top:1px dashed #999}
+      .print-footer{margin-top:12px;font-size:14px}
+    </style>
+    </head><body>${content}</body></html>`)
+  w.document.close()
+  w.onload = () => { w.print(); w.close() }
+}
+
+// ============ TAB 3：回执录入 ============
+const receipt = reactive({ list: [], loading: false })
+const receiptDialog = reactive({
+  visible: false, task: null, submitting: false,
+  form: { completeStatus: 3, actualAmount: 0, remark: '' }
 })
 
-const fetchPendingTasks = async () => {
-  loading.value = true
+const loadAssigned2 = async () => {
+  receipt.loading = true
   try {
-    const res = await axios.get('http://localhost:8080/admin/station/pendingTasks')
-    if (res.data.code === 200) {
-      tableData.value = res.data.data
-    } else {
-      ElMessage.error(res.data.msg)
-    }
-  } catch (error) {
-    ElMessage.error('获取列表失败，请检查网络')
-  } finally {
-    loading.value = false
+    const res = await axios.get(`${BASE}/admin/station/assigned-tasks`, {
+      params: { stationId: stationId.value }
+    })
+    if (res.data.code === 200) receipt.list = res.data.data || []
+  } catch {}
+  finally { receipt.loading = false }
+}
+
+const openReceiptDialog = (row) => {
+  receiptDialog.task = row
+  receiptDialog.form = {
+    completeStatus: 3,
+    actualAmount: Number(row.total_amount || 0),
+    remark: ''
   }
+  receiptDialog.visible = true
 }
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  return dateStr.replace('T', ' ')
-}
-
-const openAssignDialog = (row) => {
-  assignForm.taskId = row.id
-  assignForm.orderId = row.orderId
-  assignForm.taskNo = row.taskNo
-  assignForm.receiveAddress = row.receiveAddress
-  assignForm.courierId = null // 清空上次选择
-  dialogVisible.value = true
-}
-
-const submitAssign = () => {
-  formRef.value.validate(async (valid) => {
-    if (!valid) return
-    submitLoading.value = true
-    
-    // 获取当前站长ID
-    const realAdminId = parseInt(localStorage.getItem('currentUserId')) || 0;
-
-    try {
-      const res = await axios.post('http://localhost:8080/admin/station/assign', null, {
-        params: {
-          taskId: assignForm.taskId,
-          orderId: assignForm.orderId,
-          courierId: assignForm.courierId,
-          adminId: realAdminId
-        }
-      })
-      
-      if (res.data.code === 200) {
-        ElMessage.success(res.data.msg)
-        dialogVisible.value = false
-        fetchPendingTasks() // 刷新，订单被小哥拿走，离开任务池
-      } else {
-        ElMessage.error(res.data.msg)
-      }
-    } catch (error) {
-      ElMessage.error('任务下发失败！')
-    } finally {
-      submitLoading.value = false
-    }
-  })
-}
-
-
-
-// 拉取待结单的数据
-const fetchCloseTasks = async () => {
-  closeLoading.value = true
-  const res = await axios.get('http://localhost:8080/admin/station/pendingClose')
-  if (res.data.code === 200) closeTableData.value = res.data.data
-  closeLoading.value = false
-}
-
-// 切换 Tab 时触发
-const handleTabClick = (tab) => {
-  if (tab.paneName === 'dispatch') fetchPendingTasks()
-  if (tab.paneName === 'close') fetchCloseTasks()
-}
-
-// 终极结单操作
-const doClose = (row) => {
-  ElMessageBox.confirm(`确认已收到骑士 [${row.courierName}] 上交的货款 ¥ ${row.totalAmount} 并核对签收单无误？`, '财务结单确认', {
-    confirmButtonText: '钱款无误，完结此单',
-    cancelButtonText: '再算算',
-    type: 'success',
-  }).then(async () => {
-    const res = await axios.post(`http://localhost:8080/admin/station/close?taskId=${row.taskId}&orderId=${row.orderId}`)
+const submitReceipt = async () => {
+  await ElMessageBox.confirm(
+    `确认录入回执？完成状态：${ { 3:'全部完成', 4:'部分完成', 5:'失败/拒收' }[receiptDialog.form.completeStatus] }，实收：¥${receiptDialog.form.actualAmount}`,
+    '结单确认', { type: 'warning' })
+  receiptDialog.submitting = true
+  try {
+    const res = await axios.post(`${BASE}/admin/station/receipt`, {
+      taskId: receiptDialog.task.id,
+      orderId: receiptDialog.task.order_id,
+      completeStatus: receiptDialog.form.completeStatus,
+      actualAmount: receiptDialog.form.actualAmount,
+      remark: receiptDialog.form.remark
+    })
     if (res.data.code === 200) {
-      ElMessage.success(res.data.msg)
-      fetchCloseTasks() // 刷新收银台
-    }
-  }).catch(() => {})
+      ElMessage.success(res.data.data || '结单成功！')
+      receiptDialog.visible = false
+      loadAssigned2()
+    } else { ElMessage.error(res.data.msg) }
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('操作失败')
+  } finally { receiptDialog.submitting = false }
 }
-// 找到现有的 onMounted，把拉取小哥的方法加进去
+
+// ============ TAB 4：缴款统计 ============
+const payFilter = reactive({ dateRange: null })
+const payment = reactive({ loading: false, details: [], summary: null })
+
+const loadPaymentStats = async () => {
+  payment.loading = true
+  try {
+    const res = await axios.get(`${BASE}/admin/station/payment-stats`, {
+      params: {
+        stationId: stationId.value,
+        dateStart: payFilter.dateRange?.[0] || undefined,
+        dateEnd: payFilter.dateRange?.[1] || undefined
+      }
+    })
+    if (res.data.code === 200) {
+      payment.details = res.data.data.details || []
+      payment.summary = res.data.data.summary
+    } else { ElMessage.error(res.data.msg) }
+  } catch { ElMessage.error('查询失败') }
+  finally { payment.loading = false }
+}
+
+// ============ 初始化 ============
+const loadCouriers = async () => {
+  try {
+    const res = await axios.get(`${BASE}/admin/station/couriers`)
+    if (res.data.code === 200) couriers.value = res.data.data || []
+  } catch {}
+}
+
 onMounted(() => {
-  fetchPendingTasks()
-  fetchCouriers()
-  fetchCloseTasks() 
+  loadCouriers()
+  loadPending()
+  loadAssigned()
 })
 </script>
 
 <style scoped>
-.app-container { height: 100%; }
-.box-card { min-height: 100%; }
+.station-workspace { padding: 10px; }
+.main-tabs { min-height: 520px; }
+.panel-title { font-weight: 600; font-size: 14px; }
+:deep(.el-card__header) {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; background: #f5f7fa; flex-wrap: wrap;
+}
+
+/* 汇总卡片 */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.summary-card { border-radius: 8px; text-align: center; padding: 8px; }
+.card-title { font-size: 12px; color: #909399; margin-bottom: 4px; }
+.card-value { font-size: 22px; font-weight: 700; }
+.delivered { border-top: 3px solid #409eff; }
+.delivered .card-value { color: #409eff; }
+.amount { border-top: 3px solid #67c23a; }
+.amount .card-value { color: #67c23a; }
+.failed { border-top: 3px solid #f56c6c; }
+.failed .card-value { color: #f56c6c; }
+.refund { border-top: 3px solid #e6a23c; }
+.refund .card-value { color: #e6a23c; }
+
+/* 打印区域 */
+.print-area { padding: 10px; }
+.print-header { text-align: center; margin-bottom: 12px; }
+.print-header h2 { margin: 0; font-size: 20px; }
+.print-header p { margin: 4px 0; color: #666; font-size: 12px; }
+.print-footer { margin-top: 16px; }
+.sign-area {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px dashed #ccc;
+  font-size: 13px;
+}
 </style>
