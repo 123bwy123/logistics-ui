@@ -144,7 +144,14 @@ const routes = [
       {
         path: 'role-management',
         name: 'RoleManagement',
-        component: () => import('../views/admin/RoleManagement.vue')
+        component: () => import('../views/admin/RoleManagement.vue'),
+        meta: { title: '角色权限分配' }
+      },
+      {
+        path: 'log-monitoring',
+        name: 'LogMonitoring',
+        component: () => import('../views/admin/LogMonitoring.vue'),
+        meta: { title: '系统操作日志' }
       }
     ]
   },

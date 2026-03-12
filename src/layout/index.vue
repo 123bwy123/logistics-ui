@@ -15,10 +15,16 @@
                   router
                   class="el-menu-vertical"
                 >
-                  <el-menu-item index="/admin/system-user" v-if="currentRole === 'admin'">
-				  <el-icon><User /></el-icon>
-				  <span>员工账号管理</span>
-				</el-menu-item>
+                  <!-- 系统权限控制 (RBAC) - 移动到最上方且支持 role=0 -->
+                  <el-sub-menu index="system" v-if="currentRole === 'admin' || currentRole === '0'">
+                    <template #title>
+                      <el-icon><Setting /></el-icon>
+                      <span>系统权限控制</span>
+                    </template>
+                    <el-menu-item index="/admin/system-user">员工账号管理</el-menu-item>
+                    <el-menu-item index="/admin/role-management">角色权限分配</el-menu-item>
+                    <el-menu-item index="/admin/log-monitoring">系统操作日志</el-menu-item>
+                  </el-sub-menu>
 	  
 				<el-menu-item index="/admin/service-workspace" v-if="currentRole === 'service' || currentRole === 'admin'">
 				  <el-icon><PhoneFilled /></el-icon>
@@ -91,16 +97,6 @@
 					<span>出入库流水账</span>
 				</el-menu-item>
 
-				<!-- 系统管理 (RBAC) -->
-				<el-sub-menu index="system" v-if="currentRole === 'admin'">
-					<template #title>
-						<el-icon><Setting /></el-icon>
-						<span>系统权限控制</span>
-					</template>
-					<el-menu-item index="/admin/system-user">员工账号管理</el-menu-item>
-					<el-menu-item index="/admin/role-management">角色权限分配</el-menu-item>
-				</el-sub-menu>
-
 				<el-menu-item index="/admin/supplier-workspace" v-if="currentRole === 'supplier' || currentRole === 'admin'">
 					<el-icon><Van /></el-icon>
 					<span>厂家发货大厅</span>
@@ -149,7 +145,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { User, Expand, ArrowDown, PhoneFilled, Postcard,Guide,Box,Bicycle,House,DataLine,Shop,Fold,Van,List,ShoppingCart,Money,Timer } from '@element-plus/icons-vue'
+import { User, Expand, ArrowDown, PhoneFilled, Postcard,Guide,Box,Bicycle,House,DataLine,Shop,Fold,Van,List,ShoppingCart,Money,Timer,Setting } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -168,7 +164,7 @@ const roleMap = {
   'finance_admin': '财务总监'
 }
 // 计算出当前应该显示的中文名
-const displayRoleName = roleMap[currentRole] || '内部员工'
+const displayRoleName = roleMap[currentRole] || (currentRole === '0' ? '超级管理员' : '内部员工')
 
 const route = useRoute()
 const router = useRouter()
@@ -191,7 +187,8 @@ const handleCommand = (command) => {
 .aside-menu {
   background-color: #304156;
   transition: width 0.3s;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .logo-box {
   height: 60px;
@@ -214,6 +211,19 @@ const handleCommand = (command) => {
 }
 .el-menu-vertical {
   border-right: none;
+  flex: 1;
+  overflow-y: auto;
+}
+/* 美化滚动条 */
+.el-menu-vertical::-webkit-scrollbar {
+  width: 6px;
+}
+.el-menu-vertical::-webkit-scrollbar-thumb {
+  background: #4b5f77;
+  border-radius: 3px;
+}
+.el-menu-vertical::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* 顶部 Header 样式 */
