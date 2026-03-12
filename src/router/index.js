@@ -58,7 +58,30 @@ const routes = [
 			path: 'station-warehouse-workspace', 
 			name: 'StationWarehouseWorkspace', 
 			component: () => import('../views/station-warehouse/StationWarehouseWorkspace.vue') 
-		  }
+		  },
+		  // 快递小哥工作台
+			{ 
+			  path: 'courier-workspace', 
+			  name: 'CourierWorkspace', 
+			  component: () => import('../views/courier/CourierWorkspace.vue') 
+			},
+			// 【新增】配送中心管理员大屏
+			  { 
+				path: 'center-workspace', 
+				name: 'CenterWorkspace', 
+				component: () => import('../views/center/CenterWorkspace.vue') 
+			  },
+			  { 
+			          path: 'supplier-workspace', 
+			          name: 'SupplierWorkspace', 
+			          component: () => import('../views/supplier/SupplierWorkspace.vue') 
+			 },
+			 // 财务中心
+			   { 
+				 path: 'finance-workspace', 
+				 name: 'FinanceWorkspace', 
+				 component: () => import('../views/finance/FinanceWorkspace.vue') 
+			   }
 		
     ]
   },

@@ -1,75 +1,87 @@
 <template>
   <div class="app-container">
-    <el-card class="box-card" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <span style="font-weight: bold; font-size: 16px;">
-            <el-icon><Bicycle /></el-icon> 配送分站 - 运单派发工作台
-          </span>
-          <el-button type="primary" plain size="small" icon="Refresh" @click="fetchPendingTasks">刷新任务池</el-button>
-        </div>
-      </template>
-
-      <el-table :data="tableData" border stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="taskNo" label="内部任务单号" width="180" align="center">
-          <template #default="scope">
-            <el-tag type="info">{{ scope.row.taskNo }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="customerOrderNo" label="关联运单号" width="180" align="center" />
-        <el-table-column prop="receiveAddress" label="客户收件地址 (关键)" min-width="250" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="任务到达时间" width="170" align="center">
-          <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
-        </el-table-column>
+    <el-card shadow="hover">
+      <el-tabs v-model="activeTab" @tab-click="handleTabClick">
         
-        <el-table-column label="站长操作" width="150" align="center" fixed="right">
-          <template #default="scope">
-            <el-button size="small" type="primary" icon="Position" @click="openAssignDialog(scope.row)">指派小哥</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        <el-tab-pane label="派件调度 (发任务)" name="dispatch">
+          <el-table :data="tableData" border stripe v-loading="loading">
+            <el-table-column prop="taskNo" label="内部任务单号" />
+            <el-table-column prop="customerOrderNo" label="关联运单号" />
+            <el-table-column prop="receiveAddress" label="客户收件地址" show-overflow-tooltip />
+            <el-table-column label="操作" width="120" align="center">
+              <template #default="scope">
+                <el-button type="primary" size="small" @click="openAssignDialog(scope.row)">派单</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="回执录入与结单 (收钱)" name="close">
+          <el-alert title="小哥送完货回网点后，请仔细核对签收单及货款，确认无误后点击【确认收款并结单】。" type="success" show-icon style="margin-bottom: 20px;" />
+          <el-table :data="closeTableData" border stripe v-loading="closeLoading">
+            <el-table-column prop="customerOrderNo" label="客户订单号" align="center" />
+            <el-table-column prop="courierName" label="派送骑士" align="center">
+              <template #default="scope"><el-tag type="warning">{{ scope.row.courierName }}</el-tag></template>
+            </el-table-column>
+            <el-table-column prop="totalAmount" label="应上交货款(元)" align="center">
+              <template #default="scope"><span style="color: red; font-weight: bold; font-size: 16px;">¥ {{ scope.row.totalAmount }}</span></template>
+            </el-table-column>
+            <el-table-column label="站长操作" width="200" align="center">
+              <template #default="scope">
+                <el-button type="success" icon="Money" @click="doClose(scope.row)">已收妥·确认结单</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+      </el-tabs>
     </el-card>
-
-    <el-dialog title="人工指派配送员" v-model="dialogVisible" width="450px">
-      <el-alert title="请根据包裹的目的地地址，分配给负责该片区的骑士。" type="success" show-icon style="margin-bottom: 20px;" />
-      
-      <el-form ref="formRef" :model="assignForm" label-width="90px">
-        <el-form-item label="任务单号">
-          <el-input v-model="assignForm.taskNo" disabled />
-        </el-form-item>
-        <el-form-item label="派送地址">
-          <el-input type="textarea" :rows="2" v-model="assignForm.receiveAddress" disabled />
-        </el-form-item>
-        
-        <el-form-item label="选择配送员" prop="courierId" :rules="{ required: true, message: '必须选择一名配送员' }">
-          <el-select v-model="assignForm.courierId" placeholder="请选择当班骑士" style="width: 100%;">
-            <el-option label="🌟 金牌骑士 - 王建国 (负责海淀)" :value="401" />
-            <el-option label="⚡ 闪电小哥 - 李铁柱 (负责朝阳)" :value="402" />
-            <el-option label="🛵 靠谱专员 - 张大山 (负责浦东)" :value="403" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">暂不派单</el-button>
-          <el-button type="primary" :loading="submitLoading" @click="submitAssign">立即下发任务</el-button>
-        </span>
-      </template>
-    </el-dialog>
-  </div>
+		<el-dialog v-model="dialogVisible" title="🚚 分配配送任务" width="400px">
+			  <el-form ref="formRef" :model="assignForm">
+				<el-form-item label="选择配送员" required prop="courierId">
+				  <el-select v-model="assignForm.courierId" placeholder="请选择本站快递小哥" style="width: 100%">
+					<el-option v-for="c in courierList" :key="c.id" :label="c.realName" :value="c.id" />
+				  </el-select>
+				</el-form-item>
+			  </el-form>
+			  <template #footer>
+				<span class="dialog-footer">
+				  <el-button @click="dialogVisible = false">取消</el-button>
+				  <el-button type="primary" @click="submitAssign" :loading="submitLoading">确认派发</el-button>
+				</span>
+			  </template>
+			</el-dialog>
+    </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { Bicycle, Position, Refresh } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Bicycle, Position, Refresh,Money } from '@element-plus/icons-vue'
+import { ElMessage , ElMessageBox} from 'element-plus'
 import axios from 'axios'
+
+const activeTab = ref('dispatch') // 默认停在第一个标签
+const closeTableData = ref([])
+const closeLoading = ref(false)
 
 const tableData = ref([])
 const loading = ref(false)
 const submitLoading = ref(false)
 
+// 【新增】：存放真实小哥的数组
+const courierList = ref([])
+
+// 【新增】：去后端拉取真实的快递小哥名单
+const fetchCouriers = async () => {
+  try {
+    const res = await axios.get('http://localhost:8080/admin/station/courierList')
+    if (res.data.code === 200) {
+      courierList.value = res.data.data
+    }
+  } catch (error) {
+    console.error('获取小哥列表失败')
+  }
+}
 const dialogVisible = ref(false)
 const formRef = ref(null)
 const assignForm = reactive({
@@ -143,8 +155,41 @@ const submitAssign = () => {
   })
 }
 
+
+
+// 拉取待结单的数据
+const fetchCloseTasks = async () => {
+  closeLoading.value = true
+  const res = await axios.get('http://localhost:8080/admin/station/pendingClose')
+  if (res.data.code === 200) closeTableData.value = res.data.data
+  closeLoading.value = false
+}
+
+// 切换 Tab 时触发
+const handleTabClick = (tab) => {
+  if (tab.paneName === 'dispatch') fetchPendingTasks()
+  if (tab.paneName === 'close') fetchCloseTasks()
+}
+
+// 终极结单操作
+const doClose = (row) => {
+  ElMessageBox.confirm(`确认已收到骑士 [${row.courierName}] 上交的货款 ¥ ${row.totalAmount} 并核对签收单无误？`, '财务结单确认', {
+    confirmButtonText: '钱款无误，完结此单',
+    cancelButtonText: '再算算',
+    type: 'success',
+  }).then(async () => {
+    const res = await axios.post(`http://localhost:8080/admin/station/close?taskId=${row.taskId}&orderId=${row.orderId}`)
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.msg)
+      fetchCloseTasks() // 刷新收银台
+    }
+  }).catch(() => {})
+}
+// 找到现有的 onMounted，把拉取小哥的方法加进去
 onMounted(() => {
   fetchPendingTasks()
+  fetchCouriers()
+  fetchCloseTasks() 
 })
 </script>
 

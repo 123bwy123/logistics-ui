@@ -41,6 +41,7 @@
                     <el-option label="分站管理员 (Station Admin)" :value="5" />
                     <el-option label="配送中心管理员 (Center Admin)" :value="6" />
                     <el-option label="财务中心管理员 (Finance Admin)" :value="7" />
+					<el-option label="供应商厂家 (Supplier)" :value="9" />
                   </el-select>
         </el-form-item>
         <el-alert v-if="!form.id" title="初始密码默认为 123456" type="info" show-icon style="margin-bottom: 15px;"/>

@@ -124,6 +124,25 @@ export function useLogin() {const router = useRouter() // 初始化路由
 								  ElMessage.success('欢迎分站库管！正在进入网点接货系统...')
 								  router.push('/admin/station-warehouse-workspace') // 跳去分站库房 (接车验货的)
 								}
+								else if (loginForm.role === 'courier') {
+									ElMessage.success('欢迎骑士！正在进入接单终端...')
+									router.push('/admin/courier-workspace')
+								  }
+								  else if (loginForm.role === 'center_admin') {
+									  ElMessage.success('欢迎主管！正在加载库存监控大屏...')
+									  router.push('/admin/center-workspace')
+									}
+									// 【正确姿势】：直接认准 supplier 字符串！
+								  else if (loginForm.role === 'supplier') {
+									ElMessage.success('欢迎厂家老总！正在加载发货大厅...')
+									router.push('/admin/supplier-workspace')
+								  }
+								  // 👇 【新增：在这里补上财务老总的绿色通道！】 👇
+								else if (loginForm.role === 'finance_admin') {
+								  ElMessage.success('欢迎财务总监！正在进入结算与发票中心...')
+								  router.push('/admin/finance-workspace')
+								}
+								
 							  else {
 								ElMessage.info('您的专属工作台正在快马加鞭开发中...')
                             }

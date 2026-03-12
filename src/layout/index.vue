@@ -15,32 +15,52 @@
                   router
                   class="el-menu-vertical"
                 >
-                  <el-menu-item index="/admin/system-user">
-                    <el-icon><User /></el-icon>
-                    <span>员工账号管理</span>
-                  </el-menu-item>
-                  
-                  <el-menu-item index="/admin/service-workspace">
-                    <el-icon><PhoneFilled /></el-icon>
-                    <span>客服工作台</span>
-                  </el-menu-item>
-                  <el-menu-item index="/admin/dispatch-workspace">
-					  <el-icon><Guide /></el-icon>
-					  <span>调度中心工作台</span>
-                 </el-menu-item>
-				 <el-menu-item index="/admin/warehouse-workspace">
-					 <el-icon><Box /></el-icon>
-					 <span>库房出库管理</span>
+                  <el-menu-item index="/admin/system-user" v-if="currentRole === 'admin'">
+				  <el-icon><User /></el-icon>
+				  <span>员工账号管理</span>
 				</el-menu-item>
-				<el-menu-item index="/admin/station-workspace">
-					<el-icon><Bicycle /></el-icon>
-					<span>分站派件管理</span>
-			   </el-menu-item>
-				<el-menu-item index="/admin/station-warehouse-workspace">
-					<el-icon><House /></el-icon>
-					<span>分站库房工作台</span>
+	  
+				<el-menu-item index="/admin/service-workspace" v-if="currentRole === 'service' || currentRole === 'admin'">
+				  <el-icon><PhoneFilled /></el-icon>
+				  <span>客服工作台</span>
+				</el-menu-item>
+	  
+				<el-menu-item index="/admin/dispatch-workspace" v-if="currentRole === 'dispatcher' || currentRole === 'admin'">
+				  <el-icon><Guide /></el-icon>
+				  <span>调度中心工作台</span>
+				</el-menu-item>
+	  
+				<el-menu-item index="/admin/warehouse-workspace" v-if="currentRole === 'center_warehouse' || currentRole === 'admin'">
+				  <el-icon><Box /></el-icon>
+				  <span>库房出库管理</span>
+				</el-menu-item>
+	  
+				<el-menu-item index="/admin/station-workspace" v-if="currentRole === 'station_admin' || currentRole === 'admin'">
+				  <el-icon><Bicycle /></el-icon>
+				  <span>分站派件管理</span>
+				</el-menu-item>
+	  
+				<el-menu-item index="/admin/station-warehouse-workspace" v-if="currentRole === 'station_warehouse' || currentRole === 'admin'">
+				  <el-icon><House /></el-icon>
+				  <span>分站库房工作台</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/courier-workspace" v-if="currentRole === 'courier' || currentRole === 'admin'">
+				<el-icon><Bicycle /></el-icon>
+				<span>骑士终端 (派送)</span>
+			  </el-menu-item>  
+			  <el-menu-item index="/admin/center-workspace" v-if="currentRole === 'center_admin' || currentRole === 'admin'">
+				  <el-icon><DataLine /></el-icon>
+				  <span>库存监控与采购大屏</span>
+				</el-menu-item>
+				<el-menu-item index="/admin/supplier-workspace" v-if="currentRole === 'supplier' || currentRole === 'admin'">
+					<el-icon><Van /></el-icon>
+					<span>厂家发货大厅</span>
 				  </el-menu-item>
-				  
+				  <el-menu-item index="/admin/finance-workspace" v-if="currentRole === 'finance_admin' || currentRole === 'admin'">
+					  <el-icon><Money /></el-icon>
+					  <span>财务结算与发票中心</span>
+					</el-menu-item>
+			  
           <el-menu-item index="/admin/customer">
             <el-icon><Postcard /></el-icon>
             <span>客户信息查询</span>
@@ -56,9 +76,10 @@
           </div>
           <div class="header-right">
             <el-dropdown @command="handleCommand">
-              <span class="user-dropdown">
-                超级管理员 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-              </span>
+              <span class="el-dropdown-link" style="cursor: pointer; display: flex; align-items: center;">
+				  {{ displayRoleName }} 
+				  <el-icon class="el-icon--right"><arrow-down /></el-icon>
+				</span>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="profile">个人中心</el-dropdown-item>
@@ -78,9 +99,27 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { User, Expand, ArrowDown, PhoneFilled, Postcard,Guide,Box,Bicycle,House } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+
+// 取出当前登录用户的角色，存到变量里
+const currentRole = localStorage.getItem('currentUserRole') || ''
+// 【新增】：根据英文角色名，翻译成中文显示在右上角
+const roleMap = {
+  'admin': '超级管理员',
+  'service': '客服人员',
+  'dispatcher': '调度中心主管',
+  'center_warehouse': '中心库房大叔',
+  'station_warehouse': '分站接货员',
+  'station_admin': '网点站长',
+  'courier': '闪电骑士',
+  'center_admin': '配送中心主管',
+  'finance_admin': '财务总监'
+}
+// 计算出当前应该显示的中文名
+const displayRoleName = roleMap[currentRole] || '内部员工'
 
 const route = useRoute()
 const router = useRouter()
