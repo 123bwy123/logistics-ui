@@ -9,9 +9,9 @@
             <span class="panel-title">待入库采购单</span>
             <el-form :inline="true" size="small" style="margin-left:auto">
               <el-form-item label="入库状态">
-                <el-select v-model="inboundFilter.status" clearable placeholder="全部" style="width:110px">
-                  <el-option label="待入库" :value="1" />
-                  <el-option label="已入库" :value="2" />
+                <el-select v-model="inboundFilter.status" clearable placeholder="全部" style="width:120px">
+                  <el-option label="待入库（在途）" :value="2" />
+                  <el-option label="已入库" :value="3" />
                 </el-select>
               </el-form-item>
               <el-form-item>
@@ -24,10 +24,11 @@
             <el-table-column prop="purchase_no" label="采购单号" min-width="160" />
             <el-table-column prop="supplier_name" label="供应商" min-width="150" show-overflow-tooltip />
             <el-table-column prop="purchase_date" label="采购日期" width="150" />
-            <el-table-column label="状态" width="80" align="center">
+            <el-table-column label="状态" width="95" align="center">
               <template #default="s">
-                <el-tag size="small" :type="s.row.status === 2 ? 'success' : 'warning'">
-                  {{ s.row.status === 2 ? '已入库' : '待入库' }}
+                <el-tag size="small"
+                  :type="s.row.status === 3 ? 'success' : s.row.status === 2 ? 'warning' : 'info'">
+                  {{ s.row.status === 3 ? '已入库' : s.row.status === 2 ? '在途待入库' : '待发货' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -36,7 +37,7 @@
             </el-table-column>
             <el-table-column label="操作" width="100" align="center" fixed="right">
               <template #default="s">
-                <el-button size="small" type="primary" v-if="s.row.status === 1" @click="openInboundDialog(s.row)">入库核对</el-button>
+                <el-button size="small" type="primary" v-if="s.row.status === 2" @click="openInboundDialog(s.row)">入库核对</el-button>
                 <el-button size="small" type="info" v-else @click="openInboundDialog(s.row)">查看明细</el-button>
               </template>
             </el-table-column>
@@ -223,7 +224,8 @@ const activeTab = ref('inbound')
 const fmt = (v) => Number(v || 0).toFixed(2)
 
 // ================= TAB 1: 购货入库 =================
-const inboundFilter = reactive({ status: 1 })
+// status: 2 = 在途待入库（供应商已发货），3 = 已入库（中心库房已收货）
+const inboundFilter = reactive({ status: 2 })
 const purchases = reactive({ list: [], loading: false })
 const inboundDialog = reactive({ visible: false, isView: false, order: null, items: [], loading: false, submitting: false, remark: '' })
 
@@ -237,7 +239,7 @@ const loadPurchases = async () => {
 
 const openInboundDialog = async (row) => {
   inboundDialog.order = row
-  inboundDialog.isView = row.status === 2 // 已入库只看
+  inboundDialog.isView = row.status === 3 // 已入库只看，status=3 表示已完成入库
   inboundDialog.remark = ''
   inboundDialog.visible = true
   inboundDialog.loading = true

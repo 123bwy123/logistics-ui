@@ -93,30 +93,54 @@ const tableRowClassName = ({ row }) => {
 }
 
 // 3. 点击采购按钮触发的动作
-const handlePurchase = (row) => {
-  ElMessageBox.confirm(
-    `确认向供应商采购 50 件【${row.productName}】吗？总预算约为 ¥ ${row.unitPrice * 50}`,
-    '采购确认',
-    { confirmButtonText: '确定采购', cancelButtonText: '取消', type: 'warning' }
-  ).then(async () => {
-    // 获取当前登录的主管 ID
-    const adminId = localStorage.getItem('currentUserId')
-    
-    try {
-      const res = await axios.post('http://localhost:8080/admin/center/createPurchase', {
-        productId: row.productId, // 这个 productId 需要你在之前后端 SQL 里查出来
-        unitPrice: row.unitPrice,
-        adminId: adminId
-      })
-      
-      if (res.data.code === 200) {
-        ElMessage.success(res.data.msg)
-        fetchInventory() // 刷新列表
+const handlePurchase = async (row) => {
+  // 先让用户输入真实采购数量，默认 100 件
+  let quantityInput
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `请输入本次向供应商采购【${row.productName}】的数量（件）：`,
+      '📦 填写采购数量',
+      {
+        confirmButtonText: '下一步确认',
+        cancelButtonText: '取消',
+        inputPattern: /^[1-9]\d*$/,
+        inputErrorMessage: '数量必须是大于 0 的整数',
+        inputValue: '100'
       }
-    } catch (error) {
-      ElMessage.error('采购指令下达失败')
+    )
+    quantityInput = parseInt(value)
+  } catch {
+    return // 用户取消
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确认向供应商采购 ${quantityInput} 件【${row.productName}】吗？总预算约为 ¥ ${(row.unitPrice * quantityInput).toFixed(2)}`,
+      '✅ 最终确认采购',
+      { confirmButtonText: '确定下单', cancelButtonText: '返回修改', type: 'warning' }
+    )
+  } catch {
+    return // 用户取消
+  }
+
+  // 获取当前登录的主管 ID
+  const adminId = localStorage.getItem('currentUserId')
+  try {
+    const res = await axios.post('http://localhost:8080/admin/center/createPurchase', {
+      productId: row.productId,
+      unitPrice: row.unitPrice,
+      quantity: quantityInput,  // ✅ 传入真实数量
+      adminId: adminId
+    })
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.msg)
+      fetchInventory()
+    } else {
+      ElMessage.error(res.data.msg || '采购指令下达失败')
     }
-  }).catch(() => {})
+  } catch (error) {
+    ElMessage.error('采购指令下达失败，请检查网络')
+  }
 }
 onMounted(() => {
   fetchInventory()
